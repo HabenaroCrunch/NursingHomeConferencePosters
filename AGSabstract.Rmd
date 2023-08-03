@@ -1,0 +1,734 @@
+---
+title: "AGS2022"
+author: "Annie Rhodes"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+Install
+```{r}
+install.packages("tidyverse")
+install.packages("dplyr")
+install.packages("stringr")
+install.packages("purr")
+install.packages("tableone")
+install.packages("multcomp")
+library("multcomp")
+install.packages("finalfit")
+```
+
+#renamedataframes Providers 22, 21, 20 looking at all nursing homes over 3 years Use local directory and pull from dissertation 
+
+```{r}
+library(readr)
+NH_ProviderInfo_Oct2022 <- read_csv("~/NURSING HOME DATA/Excel files/NH_ProviderInfo_Oct2022.csv")
+providers_22<-NH_ProviderInfo_Oct2022
+NH_ProviderInfo_Nov2021 <- read_csv("NH_ProviderInfo_Nov2021.csv")
+providers_21<-NH_ProviderInfo_Nov2021
+OwnershipNov2020 <- read_csv("~/NURSING HOME DATA/Excel files/OwnershipNov2020.csv")
+library(readxl)
+NH_ProviderInfo_Nov2020_2 <- read_excel("~/NURSING HOME DATA/Excel files/NH_ProviderInfo_Nov2020 2.xls")
+library(readr)
+NH_ProviderInfo_Nov2020_2->providers_2020
+COVID_19_Nursing_Home_Data_01_01_2023 <- read_csv("COVID-19 Nursing Home Data 01.01.2023.csv")
+#nursing_homevax<-NH_CovidVaxAverages_20221113
+```
+
+#Mutate ownership into three catagories-"Non Prof" "For Profit" and "Government" (All have 10 characters)
+
+```{r}
+library('dplyr')
+library('stringr')
+library('purrr')
+install.packages("pander")
+library(pander)
+providers_2020<-mutate(providers_2020,`Ownership Type`=str_sub(`Ownership Type`, 1,10))
+ownershiptable_2020<-providers_2020 %>% split('Ownership Type') %>% map(summary)
+ownershiptable_2020 
+
+providers_21<-mutate(providers_21,`Ownership Type`=str_sub(`Ownership Type`, 1,10))
+ownershiptable_21<-providers_21 %>% split('Ownership Type') %>% map(summary)
+ownershiptable_21
+
+providers_22<-mutate(providers_22,`Ownership Type`=str_sub(`Ownership Type`, 1,10))
+ownershiptable_22<-providers_22 %>% split('Ownership Type') %>% map(summary)
+ownershiptable_22
+# Check for NA values in the "Ownership Type" column
+na_rows <- is.na(providers_22$`Ownership Type`)
+
+# Subset the dataframe to show only the rows with NA values for "Ownership Type"
+na_ownership <- providers_22[na_rows, ]
+
+# Display the subsetted dataframe
+na_ownership
+
+
+```
+
+Table 1 2020-2023 of different size, ownership had to make 6 different tables.
+
+```{r}
+library(tableone)
+
+#2020 Ownership
+table2020<-CreateTableOne(vars=c("Ownership Type", "Number of Certified Beds", "Average Number of Residents per Day"), data=providers_2020)
+print(table2020)
+
+#2020 Average and SD of Beds and Res
+bed_res_2020 <- providers_2020 %>%
+  filter(`Ownership Type` %in% c("Government", "For profit", "Non profit")) %>%
+  group_by(`Ownership Type`) %>%
+  summarise(
+    Mean_Certified_Beds = mean(`Number of Certified Beds`, na.rm = TRUE),
+    SD_Certified_Beds = sd(`Number of Certified Beds`, na.rm = TRUE),
+    Mean_Avg_Residents = mean(`Average Number of Residents per Day`, na.rm = TRUE),
+    SD_Avg_Residents = sd(`Average Number of Residents per Day`, na.rm = TRUE)
+  )
+print(bed_res_2020)
+
+#2020 Star Rating
+star_rating_2020<-providers_2020 %>% 
+  filter(`Ownership Type` %in% c("Government", "For profit", "Non profit")) %>% 
+  group_by(`Ownership Type`) %>% 
+  summarise(
+    Mean_Overall_Rating=mean(`Overall Rating`, na.rm=TRUE),
+    SD_Overall_Rating=sd(`Overall Rating`, na.rm = TRUE))
+print(star_rating_2020)
+
+
+#2021 Ownership 
+table2021<-CreateTableOne(vars=c("Ownership Type", "Number of Certified Beds", "Average Number of Residents per Day"), data=providers_21)
+print(table2021)
+
+#2021 Average and SD of Beds and Res
+
+bed_res_2021 <- providers_21 %>%
+  filter(`Ownership Type` %in% c("Government", "For profit", "Non profit")) %>%
+  group_by(`Ownership Type`) %>%
+  summarise(
+    Mean_Certified_Beds = mean(`Number of Certified Beds`, na.rm = TRUE),
+    SD_Certified_Beds = sd(`Number of Certified Beds`, na.rm = TRUE),
+    Mean_Avg_Residents = mean(`Average Number of Residents per Day`, na.rm = TRUE),
+    SD_Avg_Residents = sd(`Average Number of Residents per Day`, na.rm = TRUE)
+  )
+print(bed_res_2021)
+#2021 Star Rating
+star_rating_2021<-providers_21 %>% 
+  filter(`Ownership Type` %in% c("Government", "For profit", "Non profit")) %>% 
+  group_by(`Ownership Type`) %>% 
+  summarise(
+    Mean_Overall_Rating=mean(`Overall Rating`, na.rm=TRUE),
+    SD_Overall_Rating=sd(`Overall Rating`, na.rm = TRUE))
+print(star_rating_2021)
+
+
+#2022 Ownership
+table2022<-CreateTableOne(vars=c("Ownership Type", "Number of Certified Beds", "Average Number of Residents per Day"), data=providers_22)
+print(table2022)
+
+#2022 Residents and Beds
+bed_res_2022 <- providers_22 %>%
+  filter(`Ownership Type` %in% c("Government", "For profit", "Non profit")) %>%
+  group_by(`Ownership Type`) %>%
+  summarise(
+    Mean_Certified_Beds = mean(`Number of Certified Beds`, na.rm = TRUE),
+    SD_Certified_Beds = sd(`Number of Certified Beds`, na.rm = TRUE),
+    Mean_Avg_Residents = mean(`Average Number of Residents per Day`, na.rm = TRUE),
+    SD_Avg_Residents = sd(`Average Number of Residents per Day`, na.rm = TRUE)
+  )
+print(bed_res_2022)
+
+
+#2022 Star Rating
+star_rating_2022<-providers_22 %>% 
+  filter(`Ownership Type` %in% c("Government", "For profit", "Non profit")) %>% 
+  group_by(`Ownership Type`) %>% 
+  summarise(
+    Mean_Overall_Rating=mean(`Overall Rating`, na.rm=TRUE),
+    SD_Overall_Rating=sd(`Overall Rating`, na.rm = TRUE))
+print(star_rating_2022)
+
+
+```
+
+anova of residents per day 2020-2022
+
+```{r}
+# Load the multcomp package
+library(multcomp)
+
+# Perform one-way ANOVA
+oneway_20_resbeds <- aov(providers_2020$`Average Number of Residents per Day` ~ providers_2020$`Ownership Type`)
+
+
+# Summarize ANOVA results
+summary(oneway_20_resbeds)
+
+# Apply Tukey's HSD test
+tukey_result_20_resbeds <- TukeyHSD(oneway_20_resbeds)
+tukey_result_20_resbeds
+
+oneway_21_resbeds <- aov(providers_21$`Average Number of Residents per Day` ~ providers_21$`Ownership Type`)
+
+
+# Summarize ANOVA results
+summary(oneway_21_resbeds)
+
+# Apply Tukey's HSD test
+tukey_result_21_resbeds <- TukeyHSD(oneway_21_resbeds)
+tukey_result_21_resbeds
+
+
+oneway_22_resbeds <- aov(providers_22$`Average Number of Residents per Day` ~ providers_22$`Ownership Type`)
+
+
+# Summarize ANOVA results
+summary(oneway_22_resbeds)
+
+# Apply Tukey's HSD test
+tukey_result_22_resbeds <- TukeyHSD(oneway_22_resbeds)
+tukey_result_22_resbeds
+
+```
+
+ANOVA of Star Rating 2020-2022
+```{r}
+oneway_20_starrating<-aov(providers_2020$`Overall Rating` ~ providers_2020$`Ownership Type`)
+# Summarize ANOVA results
+summary(oneway_20_starrating)
+# Apply Tukey's HSD test
+tukey_result_20_starrating <- TukeyHSD(oneway_20_starrating)
+tukey_result_20_starrating
+
+
+oneway_21_starrating<-aov(providers_21$`Overall Rating` ~ providers_21$`Ownership Type`)
+# Summarize ANOVA results
+summary(oneway_21_starrating)
+# Apply Tukey's HSD test
+tukey_result_21_starrating <- TukeyHSD(oneway_21_starrating)
+tukey_result_21_starrating
+
+
+oneway_22_starrating<-aov(providers_22$`Overall Rating` ~ providers_22$`Ownership Type`)
+# Summarize ANOVA results
+summary(oneway_22_starrating)
+# Apply Tukey's HSD test
+tukey_result_22_starrating <- TukeyHSD(oneway_22_starrating)
+tukey_result_22_starrating
+
+
+```
+
+
+
+#Filter COVID Data t0 2020 Only Keep Federal Provider Number and Provider Phone Number
+
+```{r}
+c19_2020<-COVID_19_Nursing_Home_Data_01_01_2023 %>% mutate(year=str_sub(`Week Ending`, -2,-1)) %>% filter((year=="20")| (`Week Ending`=="01/03/21"))
+#c19_2020<-c19_2020 %>% filter(`Week Ending`=="01/03/21")
+#c19_2020<-c19_2020 %>% select(-"year")
+
+
+```
+
+#Filter Out all Failed QA checks"
+
+```{r}
+c19_2020<-c19_2020 %>% filter(`Passed Quality Assurance Check`=="Y")
+```
+
+#join c1920 with providers 20
+
+```{r}
+New_covid_provider_data20<-merge(c19_2020,providers_2020, by="Provider Phone Number")
+```
+
+#Filter COVID Results in 2020 by ownership MUST Pass as numeric, data is a double and na.rm will NOT WORK
+
+```{r}
+
+covidrates2020 <- New_covid_provider_data20 %>%
+  filter(`Ownership Type` %in% c("Government", "For profit", "Non profit")) %>%
+  group_by(`Ownership Type`) %>%
+  summarise(
+    Mean_res_cfr = mean(as.numeric(`Total Resident COVID-19 Deaths Per 1,000 Residents`), na.rm = TRUE),
+    SD_res_cfr=sd(as.numeric(`Total Resident COVID-19 Deaths Per 1,000 Residents`),na.rm=TRUE),
+    mean_res_case= mean(as.numeric(`Residents Total Confirmed COVID-19`), na.rm=TRUE),
+    sd_res_case=sd(as.numeric(`Residents Total Confirmed COVID-19`), na.rm=TRUE),
+    mean_res_death=mean(as.numeric(`Residents Total All Deaths`), na.rm=TRUE),
+    sd_res_death=sd(as.numeric(`Residents Total All Deaths`), na.rm=TRUE),
+    mean_staff_case=mean(as.numeric(`Staff Total Confirmed COVID-19`),na.rm=TRUE),
+    sd_staff_case=sd(as.numeric(`Staff Total Confirmed COVID-19`),na.rm=TRUE),
+    mean_staff_death=mean(as.numeric(`Staff Total COVID-19 Deaths`),na.rm=TRUE),
+    sd_staff_death=sd(as.numeric(`Staff Total COVID-19 Deaths`),na.rm=TRUE)
+                          
+    )
+
+print(covidrates2020)
+
+
+```
+
+#Remove Coluns
+
+```{r}
+#New_covid_provider_data20_cleanedcolumns<-covid_provider_data20[,-c(20:40)]
+```
+
+Linear Model Total Resident Cases
+
+```{r}
+
+library(apaTables)
+res_cases_2020<-lm(`Residents Total Confirmed COVID-19` ~`Ownership Type`+`Number of Certified Beds`+`Reported Licensed Staffing Hours per Resident per Day`+`Residents Weekly Admissions COVID-19`+`Overall Rating`,New_covid_provider_data20)
+summary(res_cases_2020)
+
+table2<-apa.reg.table(res_cases_2020,table.number=2)
+print(table2, preview=docx)
+
+apa.reg.table(res_cases_2020, filename = "res_cases_2020.doc", table.number = 2)
+
+
+oneway_20_residenttotalcovid<-aov(New_covid_provider_data20$`Residents Total Confirmed COVID-19` ~ New_covid_provider_data20$`Ownership Type`)
+# Summarize ANOVA results
+summary(oneway_20_residenttotalcovid)
+# Apply Tukey's HSD test
+tukey_result_20_residenttotalcovid <- TukeyHSD(oneway_20_residenttotalcovid)
+tukey_result_20_residenttotalcovid
+
+```
+
+
+```{r}
+#Plots 2020 (Used in AGS Poster)
+
+# Load necessary libraries
+library(ggplot2)
+library(broom)
+library(dplyr)
+
+# Fit the linear regression model
+res_cases_2020 <- lm(`Residents Total Confirmed COVID-19` ~`Ownership Type`+`Number of Certified Beds`+`Reported Licensed Staffing Hours per Resident per Day`+`Overall Rating`,New_covid_provider_data20_cleanedcolumns)
+
+# Convert model coefficients to a data frame
+res_cases_coef_df <- tidy(res_cases_2020)
+
+# Create caterpillar plot
+# Calculate difference in terms of number of cases per 1000 residents
+diff <- round(res_cases_coef_df$estimate[2] - res_cases_coef_df$estimate[1], 2)
+diff2 <- round(res_cases_coef_df$estimate[3] - res_cases_coef_df$estimate[2], 2)
+ggplot(res_cases_coef_df, aes(reorder(term, estimate), estimate)) +
+  geom_point(color = "blue", size = 3) +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error),
+                width = 0.3, color = "black") +
+  coord_flip() +
+  scale_x_discrete(labels=c("Government Own", "Not Profit", "For Profit", "# of Beds","HPRD","Star Rating" ))+
+  labs(title = "Coefficient plot-Total Res Cases-2020 ",
+       x = "Coefficient",
+       y = "Estimate")+
+theme(plot.title = element_text(size=14))+
+annotate("text", x = 1.5, y = -1,5, label = paste("Governments  have", diff, "C19 cases per 1000 residents compared to for profits."))+
+  annotate("text", x = 2.5, y = -.75, label = paste("For Profits have", diff2, "C19 cases per 1000 residents compared to non profits."))
+
+
+
+
+```
+Total Staff Cases 2020 
+```{r}
+staff_cases_2020 <-lm(`Staff Total Confirmed COVID-19` ~`Ownership Type`+`Number of Certified Beds`+`Reported Licensed Staffing Hours per Resident per Day`+`Residents Weekly Admissions COVID-19`+`Overall Rating`,New_covid_provider_data20)
+summary(staff_cases_2020)
+
+table3<-apa.reg.table(staff_cases_2020,table.number=3)
+print(table3, preview=docx)
+
+apa.reg.table(staff_cases_2020, filename = "staff_cases_2020.doc", table.number = 3)
+
+
+oneway_20_stafftotalcovid<-aov(New_covid_provider_data20$`Staff Total Confirmed COVID-19` ~ New_covid_provider_data20$`Ownership Type`)
+# Summarize ANOVA results
+summary(oneway_20_stafftotalcovid)
+# Apply Tukey's HSD test
+tukey_result_20_stafftotalcovid <- TukeyHSD(oneway_20_stafftotalcovid)
+tukey_result_20_stafftotalcovid
+
+
+
+# Convert model coefficients to a data frame
+staff_cases_coef_df <- tidy(staff_cases_2020)
+
+# Create caterpillar plot
+# Calculate difference in terms of number of cases per 1000 residents
+diff_staffcase <- round(staff_cases_coef_df$estimate[2] - staff_cases_coef_df$estimate[1], 2)
+diff2_staffcase <- round(staff_cases_coef_df$estimate[3] - staff_cases_coef_df$estimate[2], 2)
+ggplot(staff_cases_coef_df, aes(reorder(term, estimate), estimate)) +
+  geom_point(color = "blue", size = 3) +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error),
+                width = 0.3, color = "black") +
+  coord_flip() +
+  scale_x_discrete(labels=c("Government Own", "Not Profit", "For Profit", "# of Beds", "HPRD", "Star Rating"))+
+  labs(title = "Coefficient plot-Total Staff Cases-2020",
+       x = "Coefficient",
+       y = "Estimate")+
+  theme(plot.title = element_text(size=14))+
+  annotate("text", x = 1.5, y = -.75, label = paste("Non Profits", abs(diff_staffcase), "C19 cases compared to Government."))+
+  annotate("text", x = 2.5, y = -.75, label = paste("For Profits have", abs(diff2_staffcase), "C19 cases compared to Non profits."))
+
+```
+
+Liner Model res CFR Cases
+Resident Case Fatality Rate 2020
+```{r}
+res_cfr_2020<-lm(`Total Resident COVID-19 Deaths Per 1,000 Residents` ~`Ownership Type`+`Number of Certified Beds`+`Reported Licensed Staffing Hours per Resident per Day`+`Residents Weekly Admissions COVID-19`+`Overall Rating`,New_covid_provider_data20)
+summary(res_cfr_2020)
+
+table4<-apa.reg.table(res_cfr_2020,table.number=4)
+print(table4, preview=docx)
+
+apa.reg.table(res_cfr_2020, filename = "res_cfr_2020.doc", table.number = 4)
+
+
+oneway_20_rescfr<-aov(New_covid_provider_data20$`Total Resident Confirmed COVID-19 Cases Per 1,000 Residents` ~ New_covid_provider_data20$`Ownership Type`)
+# Summarize ANOVA results
+summary(oneway_20_rescfr)
+# Apply Tukey's HSD test
+tukey_result_20_rescfr <- TukeyHSD(oneway_20_rescfr)
+tukey_result_20_rescfr
+
+# Load necessary libraries
+library(ggplot2)
+library(broom)
+library(dplyr)
+
+# Fit the linear regression model
+res_cfr_2020<-lm(`Total Resident Confirmed COVID-19 Cases Per 1,000 Residents` ~`Ownership Type`+`Number of Certified Beds`+`Reported Licensed Staffing Hours per Resident per Day`+`Overall Rating`,New_covid_provider_data20_cleanedcolumns)
+summary(res_cfr_2020)
+
+# Convert model coefficients to a data frame
+res_cases__cfr_coef_df <- tidy(res_cfr_2020)
+
+# Create caterpillar plot
+ggplot(res_cases__cfr_coef_df, aes(reorder(term, estimate), estimate)) +
+  geom_point(color = "blue", size = 3) +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error),
+                width = 0.3, color = "black") +
+  coord_flip() +
+  labs(title = "Coefficient plot of Resident Total COVID-19 per 1000 Cases Model Coefficients",
+       x = "Coefficient",
+       y = "Estimate")
+
+
+```
+
+Resident Case Fatality Rate 2020
+
+
+Staff Deaths 2020 
+```{r}
+staff_deaths_2020<-lm(`Staff Total COVID-19 Deaths` ~`Ownership Type`+`Number of Certified Beds`+`Reported Licensed Staffing Hours per Resident per Day`+`Residents Weekly Admissions COVID-19`+`Overall Rating`,New_covid_provider_data20)
+summary(staff_deaths_2020)
+
+table5<-apa.reg.table(staff_deaths_2020,table.number=5)
+print(table5, preview=docx)
+apa.reg.table(staff_deaths_2020, filename = "staff_deaths_2020.doc", table.number = 5)
+
+
+oneway_20_staffdeath<-aov(New_covid_provider_data20$`Staff Total COVID-19 Deaths` ~ New_covid_provider_data20$`Ownership Type`)
+# Summarize ANOVA results
+summary(oneway_20_staffdeath)
+# Apply Tukey's HSD test
+tukey_result_20_staffdeath <- TukeyHSD(oneway_20_staffdeath)
+tukey_result_20_staffdeath
+
+# Load necessary libraries
+library(ggplot2)
+library(broom)
+library(dplyr)
+
+# Fit the linear regression model
+staff_deaths_2020 <- lm(`Staff Total COVID-19 Deaths` ~ `Ownership Type` +
+  `Number of Certified Beds` + `Reported Licensed Staffing Hours per Resident per Day` +
+  `Overall Rating`, New_covid_provider_data20_cleanedcolumns)
+
+# Convert model coefficients to a data frame
+coef_df <- tidy(staff_deaths_2020)
+
+# Create caterpillar plot
+ggplot(coef_df, aes(reorder(term, estimate), estimate)) +
+  geom_point(color = "blue", size = 3) +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error),
+                width = 0.3, color = "black") +
+  coord_flip() +
+  labs(title = "Coefficient plot of Staff Total COVID-19 Deaths Model Coefficients",
+       x = "Coefficient",
+       y = "Estimate")
+
+```
+
+#Condense 21 Do again for 2021
+
+```{r}
+providers_21<-mutate(providers_21,`Ownership Type`=str_sub(`Ownership Type`, 1,10))
+```
+
+#Filter for 2021 COVID data
+
+```{r}
+c19_2021<-COVID_19_Nursing_Home_Data_01_01_2023 %>% mutate(year=str_sub(`Week Ending`, -2,-1)) %>% filter((year=="21"))
+
+#(`Week Ending`=="12/26/21"))
+#c19_2021<-c19_2021 %>% filter(`Week Ending`=="12/26/21")
+#c19_2021<-c19_2021 %>% select(-"year")
+
+#c19_2020<-COVID_19_Nursing_Home_Data_11_13_2022 %>% mutate(year=str_sub(`Week Ending`, 7,8)) %>% #filter((year=="20")| (`Week Ending`=="01/03/21"))
+```
+
+#Filter out any one who didnt pass QA check in 2021
+
+```{r}
+c19_2021<-c19_2021 %>% filter(`Passed Quality Assurance Check`=="Y")
+```
+
+#Merge with 21 Provider Data
+
+```{r}
+New_covid_provider_21<-merge(c19_2021,providers_21,by="Provider Phone Number")
+
+```
+
+covid rates 2021
+
+```{r}
+covidrates2021 <- New_covid_provider_21 %>%
+  filter(`Ownership Type` %in% c("Government", "For profit", "Non profit")) %>%
+  group_by(`Ownership Type`) %>%
+  summarise(
+    Mean_res_cfr = mean(as.numeric(`Total Resident COVID-19 Deaths Per 1,000 Residents`), na.rm = TRUE),
+    SD_res_cfr=sd(as.numeric(`Total Resident COVID-19 Deaths Per 1,000 Residents`),na.rm=TRUE),
+    mean_res_case= mean(as.numeric(`Residents Total Confirmed COVID-19`), na.rm=TRUE),
+    sd_res_case=sd(as.numeric(`Residents Total Confirmed COVID-19`), na.rm=TRUE),
+    mean_res_death=mean(as.numeric(`Residents Total All Deaths`), na.rm=TRUE),
+    sd_res_death=sd(as.numeric(`Residents Total All Deaths`), na.rm=TRUE),
+    mean_staff_case=mean(as.numeric(`Staff Total Confirmed COVID-19`),na.rm=TRUE),
+    sd_staff_case=sd(as.numeric(`Staff Total Confirmed COVID-19`),na.rm=TRUE),
+    mean_staff_death=mean(as.numeric(`Staff Total COVID-19 Deaths`),na.rm=TRUE),
+    sd_staff_death=sd(as.numeric(`Staff Total COVID-19 Deaths`),na.rm=TRUE)
+                          
+    )
+
+print(covidrates2021)
+```
+
+2022 covid merge and cases gotta upload new covid data which wish I would ='ve done earlier but okay
+
+```{r}
+library(readr)
+library(readr)
+COVID_19_Nursing_Home_Data_01_01_2023 <- read_csv("COVID-19 Nursing Home Data 01.01.2023.csv")
+
+
+#Remove all non 2022 data 
+library(dplyr)
+library(stringr)
+
+library(dplyr)
+library(stringr)
+
+
+library(dplyr)
+library(stringr)
+
+c19_2022 <- COVID_19_Nursing_Home_Data_01_01_2023 %>%
+  mutate(year = str_sub(`Week Ending`, start = -2L)) %>%
+  filter(year == "22")
+
+```
+
+Pass QA
+
+```{r}
+c19_2022<-c19_2022 %>% filter(`Passed Quality Assurance Check`=="Y")
+```
+
+Merge with proivers 22
+
+```{r}
+New_covid_provider_22<-merge(c19_2022,providers_22,by="Provider Phone Number")
+```
+
+Get Rates for 2022
+
+```{r}
+covidrates2022 <- New_covid_provider_22 %>%
+  filter(`Ownership Type` %in% c("Government", "For profit", "Non profit")) %>%
+  group_by(`Ownership Type`) %>%
+  summarise(
+    Mean_res_cfr = mean(as.numeric(`Total Resident COVID-19 Deaths Per 1,000 Residents`), na.rm = TRUE),
+    SD_res_cfr=sd(as.numeric(`Total Resident COVID-19 Deaths Per 1,000 Residents`),na.rm=TRUE),
+    mean_res_case= mean(as.numeric(`Residents Total Confirmed COVID-19`), na.rm=TRUE),
+    sd_res_case=sd(as.numeric(`Residents Total Confirmed COVID-19`), na.rm=TRUE),
+    mean_res_death=mean(as.numeric(`Residents Total All Deaths`), na.rm=TRUE),
+    sd_res_death=sd(as.numeric(`Residents Total All Deaths`), na.rm=TRUE),
+    mean_staff_case=mean(as.numeric(`Staff Total Confirmed COVID-19`),na.rm=TRUE),
+    sd_staff_case=sd(as.numeric(`Staff Total Confirmed COVID-19`),na.rm=TRUE),
+    mean_staff_death=mean(as.numeric(`Staff Total COVID-19 Deaths`),na.rm=TRUE),
+    sd_staff_death=sd(as.numeric(`Staff Total COVID-19 Deaths`),na.rm=TRUE)
+    
+  )
+
+print(covidrates2022)
+```
+
+```{r}
+
+
+
+res_cases_2021 <- lm(`Residents Total Confirmed COVID-19` ~ `Ownership Type` +
+                      `Number of Certified Beds` +
+                      `Percentage of Current Residents with a Completed Vaccination who Received a COVID-19 Vaccine Booster at Any Time` +
+                      `Percentage of Current Healthcare Personnel who Received a Completed or Partial COVID-19 Vaccination at Any Time` +
+                      `Reported Licensed Staffing Hours per Resident per Day` +
+                      `Residents Weekly Admissions COVID-19` +
+                      `Overall Rating`,
+                    data = New_covid_provider_21 )
+summary(res_cases_2021)
+
+
+table6<-apa.reg.table(res_cases_2021,table.number=6)
+print(table6, preview=docx)
+
+apa.reg.table(res_cases_2021, filename = "res_cases_2021.doc", table.number = 6)
+
+
+oneway_21_residenttotalcovid<-aov(New_covid_provider_21$`Residents Total Confirmed COVID-19` ~ New_covid_provider_21$`Ownership Type`)
+# Summarize ANOVA results
+summary(oneway_21_residenttotalcovid)
+# Apply Tukey's HSD test
+tukey_result_21_residenttotalcovid <- TukeyHSD(oneway_21_residenttotalcovid)
+tukey_result_21_residenttotalcovid
+
+# Load necessary libraries
+library(ggplot2)
+library(broom)
+library(dplyr)
+
+# Fit the linear regression model
+res_cases_2021 <- lm(`Residents Total Confirmed COVID-19` ~`Ownership Type`+`Number of Certified Beds`+`Percentage of Current Residents with a Completed Vaccination who Received a COVID-19 Vaccine Booster at Any Time`+`Percentage of Current Healthcare Personnel who Received a Completed or Partial COVID-19 Vaccination at Any Time`+`Reported Licensed Staffing Hours per Resident per Day`+`Overall Rating`,covid_provider_data21_cleanedcolumns)
+
+# Convert model coefficients to a data frame
+res_cases2021_coef_df <- tidy(res_cases_2021)
+
+# Calculate difference in terms of number of cases per 1000 residents
+diff2021 <- round(res_cases2021_coef_df$estimate[2] - res_cases2021_coef_df$estimate[1], 2)
+diff22021 <- round(res_cases2021_coef_df$estimate[3] - res_cases2021_coef_df$estimate[2], 3)
+
+# Create caterpillar plot
+ggplot(res_cases2021_coef_df, aes(reorder(term, estimate), estimate)) +
+  geom_point(color = "blue", size = 3) +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error),
+                width = 0.3, color = "black") +
+  coord_flip() +
+  scale_x_discrete(labels=c("Government Own", "Not Profit", "For Profit", "# of Beds", "Vaccine Boosters", "Healthcare Personnel Vaccination", "HPRD", "Star Rating")) +
+  labs(title = "Coefficient plot-Total Res Cases-2021 ",
+       x = "Coefficient",
+       y = "Estimate") +
+  theme(plot.title = element_text(size = 14)) +
+  annotate("text", x = 1.5, y = 1.5, label = paste("Governments have", diff2021, "C19 cases per 1000 residents compared to for profits.")) +
+  annotate("text", x = 2.5, y = 1, label = paste("For Profits have", diff22021, "C19 cases per 1000 residents compared to non profits."))
+
+
+#############
+
+ggplot(res_cases2021_coef_df, aes(reorder(term, estimate), estimate)) +
+  geom_point(color = "blue", size = 3) +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error),
+                width = 0.3, color = "black") +
+  coord_flip() +
+  scale_x_discrete(labels=c("Government Own", "Not Profit", "For Profit", "# of Beds", "Vaccine Boosters", "Healthcare Personnel Vaccination", "HPRD", "Star Rating")) +
+  labs(title = "Coefficient plot-Total Res Cases-2021 ",
+       x = "Coefficient",
+       y = "Estimate") +
+  theme(plot.title = element_text(size = 14),
+        plot.width = 10,
+        plot.height = 6) +
+  annotate("text", x = 1.5, y = 1.5, label = paste("Governments have", diff2021, "C19 cases per 1000 residents compared to for profits.")) +
+  annotate("text", x = 2.5, y = 1, label = paste("For Profits have", diff22021, "C19 cases per 1000 residents compared to non profits."))
+
+
+##########
+
+
+# Create caterpillar plot
+ggplot(res_cases2021_coef_df, aes(reorder(term, estimate), estimate)) +
+  geom_point(color = "blue", size = 3) +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error),
+                width = 0.3, color = "black") +
+  coord_flip() +
+  scale_x_discrete(labels=c("Government Own", "Not Profit", "For Profit", "# of Beds", "Vaccine Boosters", "Healthcare Personnel Vaccination", "HPRD", "Star Rating")) +
+  labs(title = "Coefficient plot-Total Res Cases-2021 ",
+       x = "Coefficient",
+       y = "Estimate") +
+  theme(plot.title = element_text(size = 14),
+        plot.margin = unit(c(.1, .1, .1, .1), "cm")) + # Change the margin to enlarge the plot area
+  annotate("text", x = 1.5, y = 4.2, label = paste("Governments have", diff2021, "C19 cases/1000 residents compared to for profits."), size=3.8) +
+  annotate("text", x = 2.5, y = 4.2, label = paste("For Profits have", diff22021, "C19 cases/1000 residents compared to non profits."), size=3.8)
+
+
+
+
+```
+
+```{r}
+res_cfr_2021<-lm(`Total Resident Confirmed COVID-19 Cases Per 1,000 Residents` ~`Ownership Type`+`Number of Certified Beds`+`Percentage of Current Residents with a Completed Vaccination who Received a COVID-19 Vaccine Booster at Any Time`+`Percentage of Current Healthcare Personnel who Received a Completed or Partial COVID-19 Vaccination at Any Time`+`Reported Licensed Staffing Hours per Resident per Day`+`Overall Rating`,covid_provider_data21_cleanedcolumns)
+summary(res_cfr_2021)
+```
+
+staff cases
+
+```{r}
+staff_covid_2021<-lm(`Staff Total Confirmed COVID-19` ~`Ownership Type`+`Number of Certified Beds`+`Percentage of Current Residents with a Completed Vaccination who Received a COVID-19 Vaccine Booster at Any Time`+`Percentage of Current Healthcare Personnel who Received a Completed or Partial COVID-19 Vaccination at Any Time`+`Reported Licensed Staffing Hours per Resident per Day`+`Overall Rating`,covid_provider_data21_cleanedcolumns)
+summary(staff_covid_2021)
+```
+
+Make a caterpiler Plot
+
+```{r}
+
+# Calculate difference in terms of number of cases per 1000 staff
+diff_staff_2021 <- round(staff_covid_2021$coef[2], 1)
+diff2_staff_2021 <- round(staff_covid_2021$coef[3], 2)
+
+# Create caterpillar plot
+ggplot(data = tidy(staff_covid_2021), aes(x = reorder(term, estimate), y = estimate)) +
+  geom_point(color = "blue", size = 3) +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error),
+                width = 0.3, color = "black") +
+  coord_flip() +
+  scale_x_discrete(labels=c("Government Own", "Not Profit", "For Profit", "# of Beds","% with Completed Vaccination & Booster", "% Healthcare Personnel Vaccinated", "HPRD","Star Rating" ))+
+  labs(title = "Coefficient plot-Staff Cases-2021 ",
+       x = "Coefficient",
+       y = "Estimate") +
+  theme(plot.title = element_text(size=14)) +
+  annotate("text", x = 1.5, y = 3, label = paste("Non-profit have", diff_staff_2021, "staff C19 cases compared to Government/1000.")) +
+  annotate("text", x = 2.5, y = 3, label = paste("For-profit have", diff2_staff_2021, "staff C19 cases compared to Non-profits/1000."))
+
+
+```
+
+```{r}
+staff_death_2021<-lm(`Staff Total COVID-19 Deaths` ~`Ownership Type`+`Number of Certified Beds`+`Percentage of Current Residents Up to Date with COVID-19 Vaccines`+`Percentage of Current Healthcare Personnel who Received a Completed or Partial COVID-19 Vaccination at Any Time`+`Reported Licensed Staffing Hours per Resident per Day`+`Overall Rating`,covid_provider_data21_cleanedcolumns)
+summary(staff_covid_2021)
+```
+
+```{r}
+redostaff_death_2021<-lm(`Staff Total COVID-19 Deaths` ~`Ownership Type`+`Number of Certified Beds`+`Percentage of Current Residents with a Completed Vaccination who Received a COVID-19 Vaccine Booster at Any Time`+`Percentage of Current Healthcare Personnel who Received a Completed or Partial COVID-19 Vaccination at Any Time`+`Reported Licensed Staffing Hours per Resident per Day`+`Overall Rating`,covid_provider_data21_cleanedcolumns)
+summary(redostaff_death_2021)
+```
