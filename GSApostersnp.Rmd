@@ -1,0 +1,102 @@
+---
+title: "GSA 2022"
+author: "Annie Rhodes"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+```
+
+Install 
+```{r}
+library(tidyverse)
+library(readxl)
+library(car)
+library(ggpubr)
+library(ggplot2)
+library(car)
+library("devtools")
+library("apaTables")
+library("pastecs")
+library("nnet")
+library("epiR")
+library("rstatix")
+library("broom")
+library(readxl)
+```
+`
+
+Create a df that has SFF/SFFc for all 12 months 
+```{r}
+appears12timesinallgroups<-allgroupsnoscientifcnotation %>% group_by(STATE,PROVNUM) %>% summarise(n=n()) %>% filter(n==12)
+doesnotappears12timesinallgroups<-allgroupsnoscientifcnotation %>% group_by(STATE,PROVNUM) %>% summarise(n=n()) %>% filter(n!=12)
+appears12timesincandidatesinfacilities<-CandidatesandFacilities2020 %>% group_by(STATE, "Provider Number") %>% summarise(n=n()) %>% filter(n==12)
+inprogram<-allgroupsnoscientifcnotation %>% filter(PROVNUM %in% CandidatesandFacilities2020$"Provider Number")
+```
+
+
+
+Create  all groups filtered. Group 1 is Special Focus Facility, Group 2 is Special Focus Facility Candidates and Group 3 is random 5 stars matched by state
+```{r}
+allgroupsfiltered<-allgroupsnoscientifcnotationcorrected %>% filter(FILEDATE=="1/1/21")
+```
+
+
+
+Poster Dataframe Create
+```{r}
+posterdataset<-allgroupsfiltered %>% select(PROVNUM,SFFStatus,RESTOT,BEDCERT,AIDHRD, RNHRD,VOCHRD,TOTHRD,CM_AIDE,CM_LPN, CM_RN, CM_TOTAL) %>% mutate(SFFStatus=factor(SFFStatus,levels = c("SFF", "SFF Candidate", "5 star")))
+par(mfrow=c(1,2
+```
+
+
+PosterVisulaization (Violin Plots)
+```{r}
+
+posterdataset<-allgroupsfiltered %>% select(PROVNUM,SFFStatus,RESTOT,BEDCERT,AIDHRD, RNHRD,VOCHRD,TOTHRD,CM_AIDE,CM_LPN, CM_RN, CM_TOTAL) %>% mutate(SFFStatus=factor(SFFStatus,levels = c("SFF", "SFF Candidate", "5 star")))
+par(mfrow=c(1,2)) 
+p<-posterdataset %>% ggplot(aes(x=SFFStatus,y=BEDCERT,fill=SFFStatus)) + geom_violin()+theme_classic()
+p<-p +ggtitle("Number of Beds in Facilities")
+p<-p+labs(y="Total Number of Beds in Nursing Home")
+p
+q<-posterdataset %>% ggplot(aes(x=SFFStatus, y=TOTHRD,fill=SFFStatus)) +geom_violin()+theme_classic()
+q
+q<-q +ggtitle("Total Hours of Care per Day")
+q<-q+labs(y="Total Hours of Care per Day in Nursing Home")
+q
+
+vv<-posterdataset %>% ggplot(aes(x=SFFStatus, y=AIDHRD, fill=SFFStatus))+geom_violin()+theme_classic()
+vv<-vv+ggtitle("Total Aide Hours of Care per Day")
+vv<-vv+labs(y="Total Aide Hours of Care Per Day in Nursing Home")
+vv
+r<-posterdataset %>% ggplot(aes(x=SFFStatus, y=VOCHRD,fill=SFFStatus)) +geom_violin()+theme_classic()
+r<-r +ggtitle("Total Practical Nurse Hours of Care per Day")
+r<-r+labs(y="Total Practical Nurse Hours of Care per Day in Nursing Home")
+r
+s<-posterdataset %>% filter(RNHRD<2.5) %>%  ggplot(aes(x=SFFStatus, y=RNHRD,fill=SFFStatus)) +geom_violin()+theme_classic()
+s<-s +ggtitle("Total Registered Nurse Hours of Care per Day")
+s<-s+labs(y="Registered Nurse Hours of Care per Day in Nursing Home")
+s
+v<-posterdataset %>% ggplot(aes(x=SFFStatus, y=CM_AIDE,fill=SFFStatus)) +geom_violin()+theme_classic()
+v<-v +ggtitle("Total Case-Mix Aide Adjusted Hours of Care per Day")
+v<-v+labs(y="Case-Mix Aide Adjusted Hours of Care per Day in Nursing Home")
+v
+uv<-posterdataset %>% ggplot(aes(x=SFFStatus, y=CM_TOTAL,fill=SFFStatus)) +geom_violin()+theme_classic()
+uv<-uv +ggtitle("Total Case-Mix Total Adjusted Hours of Care per Day")
+uv<-uv+labs(y="Case-Mix Adjusted Hours of Care per Day in Nursing Home")
+uv
+
+yy<-posterdataset %>% ggplot(aes(x=SFFStatus, y=CM_LPN, fill=SFFStatus))+geom_violin()+theme_classic()
+yy<-yy+ggtitle("Total Case-Mix Adjusted Practical Nurse Hours of Care per Day")
+yy<-yy+labs(y=" Case-Mix Practical Nurse Hours in Nursing Home")
+yy
+
+zz<-posterdataset %>% ggplot(aes(x=SFFStatus,y=CM_RN, fill=SFFStatus))+geom_violin()+theme_classic()
+zz<-zz+ggtitle(("Total Case-Mix Adjusted Registered Nurse Hours of Care per Day"))
+zz<-zz+labs(y="Case-Mix Registered Nurse Hours in Nursing Home")
+zz
+
+
+```
+
